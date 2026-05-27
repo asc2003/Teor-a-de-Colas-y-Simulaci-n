@@ -1,0 +1,150 @@
+---
+title: "Pràctica1"
+author: "Àlex Soler"
+date: "2024-04-08"
+output:
+  pdf_document: default
+  html_document:
+    theme: cosmo
+    code_folding: hide
+    css: styles.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Estadístics bàsics i estimacions
+
+### Lectura de les dades i visualització de les mostres
+```{r}
+A<-read.table("A4.DAT",header=T,as.is=T)
+S<-read.table("S10.DAT",header=T,as.is=T)
+par(mfrow=c(1,2))
+hist(A$x,20,col=rainbow(n=3),main="Arribades",xlab="t")
+hist(S$y,20,col=rainbow(n=3),main="Sortides",xlab="t")
+```
+  
+Graficant les mostres, podem veure com aparentment semblen dos distribucions exponencials. A continuació veiem algunes estadístiques bàsiques, primer per les arribades i després per les sortides:
+```{r}
+summary(A)   
+summary(S)
+```
+
+
+### Distribució de la hipòtesi nul·la
+```{r}
+mm1<-mean(A$x) 
+mm2<-mean(S$y)
+Arate<-1/mm1 
+Srate<-1/mm2
+rho<-Arate/Srate
+par(mfrow=c(1,2))                        
+hist(A$x,freq=FALSE,breaks=25,col="yellow",main="Arribades equal interval length ... ",xlab="t") # opcio freq=FALSE canvia l'escala y a densitats i no a freqüencies.
+curve(dgamma(x,shape=1,scale=mm1),col=2,add=T) 
+hist(S$y,freq=FALSE,breaks=25,col="yellow",main="Sortides equal interval length ... ",xlab="t") # opcio freq=FALSE canvia l'escala y a densitats i no a freqüencies.
+curve(dgamma(x,shape=1,scale=mm2),col=2,add=T) 
+```
+  
+En els gràfics podem comprovar com les dades semblen ajustar-se prou bé a una distribució exponencial de paràmetres `r round(1/mm1,4)` i `r round(1/mm2,4)` respectivament (les corbes vermelles segueixen distribucions exponencials). Tot i així haurem de fer el test per comprovar-ho.  
+Les estimacions fetes son:  
+$\hat{\lambda}$=`r round(Arate,4)`  
+$\hat{\mu}$= `r round(Srate,4)`  
+$\hat{\rho}$= `r round(rho,4)`  
+En el cas que sigui una exponencial, existiria estat estacionari ja que l'estimació de $\rho$ és més petit que 1.
+
+## Intervals de confiança al 95% per $\lambda$ $\mu$ i $\rho$
+Sabem que per l'interval de $\lambda$ i $\mu$ hem d'utilitzar la distribució chi-quadrat amb 2n graus de llibertad i per la $\rho$ al ser quocient de chi-quadrats entre els seus graus de llibertad, aquesta seguirà una fisher amb 2n i 2n graus de llibertad.
+```{r}
+n<-length(A$x)
+lambda_est<-Arate
+mu_est<-Srate
+x_inf<-qchisq(0.025,2*n)
+x_sup<-qchisq(0.975,2*n)
+ic_lambda_inf<-x_inf*lambda_est/(2*n)
+ic_lambda_sup<-x_sup*lambda_est/(2*n)
+
+ic_mu_inf<-x_inf*mu_est/(2*n)
+ic_mu_sup<-x_sup*mu_est/(2*n)
+
+
+rho_est<-lambda_est/mu_est
+f_inf<-qf(0.025,2*n,2*n)
+f_sup<-qf(0.975,2*n,2*n)
+ic_rho_inf<-f_inf*rho_est
+ic_rho_sup<-f_sup*rho_est
+
+```
+
+|Paràmetre|IC95%_inferior|IC95%_superior|
+|:---:|:---:|:---:|
+|$\lambda$|`r ic_lambda_inf`|`r ic_lambda_sup`|
+|$\mu$|`r ic_mu_inf`|`r ic_mu_sup`|
+|$\rho$|`r ic_rho_inf`|`r ic_rho_sup`|  
+
+## Gràfic i test chi-quadrat
+Primer crearem els intervals per fer posteriorment el test chi-quadrat on substituirem l'infinit pel màxim de la mostra obtinguda. També graficarem les nostres dades per percentils segons els intervals creats.
+```{r}
+sequence<-seq(0,1,by=0.04)  
+#Arribades
+perdist1<-qexp(sequence,rate=Arate)           
+perdist1
+perdist1[26]<-30 
+perdist1
+
+#Sortides
+perdist2<-qexp(sequence,rate=Srate)           
+perdist2
+perdist2[26]<-20 
+perdist2
+
+par(mfrow=c(1,2))
+hist(A$x,freq=FALSE,breaks=perdist1,col="green",main="Arribades per percentils") 
+curve(dgamma(x,shape=1,scale=mm1),col=2,add=T)
+hist(S$y,freq=FALSE,breaks=perdist2,col="green",main="Sortides per percentils") 
+curve(dgamma(x,shape=1,scale=mm2),col=2,add=T)
+```
+  
+
+
+
+### Test chi-quadrat
+Pel test chi-quadrat és important comprovar que en cada interval creat hi hagin més de 5 observacions. Per això primer mirarem si hi ha algun interval que tingui 5 o menys observacions, si fos així posariem menys intervals per a que fossin més grans i així augmentar les observacions en cadascun.
+```{r}
+# Chi squared test
+dsample1<-cut(A$x,breaks=perdist1,include.lowest = T)
+dsample2<-cut(S$y,breaks=perdist2,include.lowest = T) 
+
+sum(table(dsample1)<=5)
+sum(table(dsample2)<=5)
+
+
+iobs1<-as.vector(table(dsample1))            # Obs in the groups defined by nb intervals-percentiles
+pexp1<-as.vector(rep(1/25,25))              # Expected probability for each groups: sample size/nb intervals
+iexp1<-n*pexp1                            # VALOR ESPERAT D'OBSERVACIONS
+
+iobs2<-as.vector(table(dsample2))            # Obs in the groups defined by nb intervals-percentiles
+pexp2<-as.vector(rep(1/25,25))              # Expected probability for each groups: sample size/nb intervals
+iexp2<-n*pexp2                             # VALOR ESPERAT D'OBSERVACIONS
+                                     
+X2_1<-sum(((iobs1-iexp1)^2)/iexp1)        
+test_1<-chisq.test( iobs1,p=pexp1 )  
+
+
+X2_2<-sum(((iobs2-iexp2)^2)/iexp2)        
+test_2<-chisq.test( iobs2,p=pexp2 )  
+```
+
+També representarem gràficament el número d'observacions per interval. És una forma més visual per estudiar la regularitat del número d'observacions distribuides sobre cada interval.
+```{r}
+
+barplot(table(dsample1),main="Observed counts arribades",col="green") # ES DIBUIXA UN DIAGRAMA DE BARRES QUE DONA IDEA DE LA REGULARITAT DEL Nº D'OBSERVACIONS DISTRIBUÏT SOBRE CADA INTERVAL
+abline(h=240/25,col="red",lwd=2,lty=2)
+
+barplot(table(dsample2),main="Observed counts sortides",col="green") # ES DIBUIXA UN DIAGRAMA DE BARRES QUE DONA IDEA DE LA REGULARITAT DEL Nº D'OBSERVACIONS DISTRIBUÏT SOBRE CADA INTERVAL
+abline(h=240/25,col="red",lwd=2,lty=2)  
+```
+  
+Com la hipòtesis nul·la era que les mostres seguien una llei exponencial, al tenir p-valors superiors a 0.05 i no poder rebutjar la hipòtesis nul·la, podem concluir que hi ha suficient evidència estadística per creure que les dades d'arribades i de sortides segueixen lleis exponencials. Les dades obtingudes al test per cada cas son:    
+- `r X2_1` com a estadístic del test per les arribades i `r test_1$p.value` com a p-valor  
+- `r X2_2` com a estadístic del test pels temps de servei i `r test_2$p.value` com a p-valor
