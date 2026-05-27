@@ -1,0 +1,228 @@
+---
+title: "Treball TCiS"
+output:
+  pdf_document: default
+  html_document: default
+date: "2024-06-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Algoritme
+Hem utilitzat les distribucions del niub *******.
+```{r}
+L<-0 #longitud clients en S.E
+Lpaquet<-0 #longitu paquet en S.E
+W<-0 #temps permanencia client en S.E
+Wpaquet<-0 #temps permanencia paquet en S.E
+Lq<-0 #longitud clients en cua
+Lqpaquet<-0 #longitud paquets en cua
+Wq<-0 #temps permanencia clients en cua
+Wqpaquet<-0 #temps permanencia paquets en cua
+Oi_1<-0 #instant sortida paquet i-1 del S.E
+ti<-0 #instant entrada paquet i al S.E.
+N<-0 #numero total de clients
+pi<-1 #numero clients en paquet i-1
+Oc<-0 #instant sortida del paquet i-1 del S.E.
+Ocv<-rep(Oc,pi) #instant sortida del client j-1 del paquet i-1
+# del S.E.
+n<-50000 #numero paquets
+Lti<-c()
+Wqti<-c()
+Wti<-c()
+Lqti<-c()
+xi_rho<-c() #temps serveis paquets
+taui_rho<-0
+hL<-c()
+taui<-0
+tauij_hist<-c(0) #temps arribades paquets 
+taui_hist<-c(0) #temps arribades clients
+xij2_hist<-c() #temps servei clients
+
+set.seed(20566534)
+for(i in 1:n){
+  ru<-runif(1,0,100) #calculem pi
+  piabans<-pi #guardem pi anterior abans
+  #d'actualitzar-lo
+  if(ru<=12.5){
+    pi<-1
+  } else if(12.5<ru & ru<=40){
+    pi<-2
+  } else if(40<ru & ru<=75){
+    pi<-3
+  } else{
+    pi<-4
+  }
+  tauij_hist<-c(tauij_hist,taui/pi)
+  t_i_s1<-max(Ocv[piabans],ti) #instant entrada client 1 del
+  #paquet i al Sistema de Servei
+  #max entre instant sortida del ultim client del paquet anterior
+  #i instant entrada del paquet i al S.E
+  xij<- -log(runif(1,0,1)*runif(1,0,1))*54.17/2 #temps de servei
+  #del client 1 del paquet i
+  Ocv<-c(t_i_s1+xij) #instant sortida del client 1 del paquet i
+  #instant entrada del client 1 del paquet i + temps servei
+  #del client 1 del paquet i
+  if (pi>1){
+    for (j in 2:pi){
+      xij<-c(xij,-log(runif(1,0,1)*runif(1,0,1))*54.17/2)
+      #temps servei del client j del paquet i
+      Ocv<-c(Ocv[1:j-1],Ocv[j-1]+xij[j])
+      #instant sortida del client j del paquet i
+      #Ocv[j]<-Ocv[j-1]+xij[j]
+    }
+  }
+  xij2_hist<-c(xij2_hist,xij)
+  tis<-max(Oi_1,ti) # instant entrada del paquet i al S.S
+  #max entre instant sortida del paquet anterior
+  #instant entrada al del paquet i al S.E.
+  xi<-sum(xij) #temps servei del paquet i
+  xi_rho<-c(xi_rho,xi) #guardem per fer el calcul de la esperança sortides paquet
+  Oi_1<-tis+xi #instant sortida del paquet i
+  #instant entrada del paquet i al S.S + temps servei paquet i
+  Lij<-Ocv-ti #temps dins del S.E del client i del paquet j 
+  #instants sortides del client j paquet i - instant entrada
+  #del paquet i al S.E.
+  L<-L+sum(Lij) #temps dins del S.E. dels N clients
+  #sumatori temps dins del S.E. del client j paquet i
+  #anem sumant els temps dins del S.E. dels N clients
+  W<-W+sum(Lij) #temps dins del S.E. dels N clients
+          #tisj<-Ocv-xij #instants entrada S.S. del client j paquet i
+  #instant sortida client j paquet i - temps servei client j
+  #paquet i
+          tisj<-c(t_i_s1,Ocv[-pi])
+  Lqij<-tisj-ti #temps dins de la cua del client i paquet j
+  #instant entrada S.S del client j paquet i - instant entrada paquet i al S.E.
+  Lq<-Lq+sum(Lqij) #temps dins de la cua dels N clients
+  Wq<-Wq+sum(Lqij) #temps dins de la cua dels N clients
+  N = N + pi #numero clients=numero clients+clients paquet i
+  if(i < n){ #si encara no han arribat n clients
+    taui <- -log(runif(1,0,1))*164 #generem nova arriba paquet
+    taui_hist<-c(taui_hist,taui)
+    taui_rho<-taui_rho+taui
+    t_new=ti+taui #instant entrada seguent paquet
+    #instant entrada paquet anterior + temps entre arribades
+  }
+  Li<-Oi_1-ti #temps dins del S.E. del paquet i
+  #instant sortida del paquet i - instant arribada paquet i
+  Lpaquet<-Lpaquet+Li #temps dins del S.E. dels paquets
+  Lti<-c(Lti,Lpaquet/ti) #calcul dels paquets en S.E.
+  #fins l'instant arribada paquet i
+  # temps dins del S.E. dels i paquets
+  #entre instant arribada paquet i
+  Wpaquet<-Wpaquet+Li #temps dins del S.E. del paquet i
+  Wti<-c(Wti,Wpaquet/i) #calcul del temps mig en S.E.
+  #per paquet fins el paquet i
+  Lqipaquet<-tis-ti #temps dins de la cua del paquet i
+  # instant entrada del paquet i al S.S 
+  # menys instants entrada paquet i al S.E
+  Lqpaquet<-Lqpaquet+Lqipaquet #temps dins de la cua dels n
+  #paquets
+  Lqti<-c(Lqti,Lqpaquet/ti)#calcul dels paquets en cua
+  #fins l'instant arribada paquet i
+  Wqpaquet<-Wqpaquet+Lqipaquet #temps dins de la cua dels n
+  #paquets
+  Wqti<-c(Wqti,Wqpaquet/i)#calcul del temps mig en cua
+  #per paquet fins el paquet i
+  ti<-t_new #acutalitzem ti a la t_new
+}
+```
+
+### Estabilització de la L
+```{r,fig.width=6, fig.height=4}
+plot(Lti)
+```
+
+Veiem que la L s'estabilitza i acaba convergint.
+
+### Càlcul de les magnituds
+```{r}
+rho<-mean(xi_rho)/(taui_rho/n)
+L_paquets<-Lti[n]
+Lq_paquets<-Lqti[n]
+W_paquets<-Wti[n]
+Wq_paquet<-Wqti[n]
+L_clients<-L/ti
+Lq_clients<-Lq/ti
+W_clients<-W/N
+Wq_clients<-Wq/N
+```
+La $\rho$ ens ha donat `r rho`
+
+|Tipus|L|Lq|W|Wq|
+|:---:|:---:|:---:|:---:|:---:|
+|Paquets|`r L_paquets`|`r Lq_paquets`|`r W_paquets`|`r Wq_paquet`|
+|Clients|`r L_clients`|`r Lq_clients`|`r W_clients`|`r Wq_clients`|
+
+Podem veure com totes les magnituds son superiors per els clients, això te sentit ja que per un paquet tenim que com a mínim hi haurà un client, per tant, sempre tindrem més ocupació mitjana en clients.
+
+### Càlculs amb la fórmula Pollaczeck-Khintchine
+Primer calculem les esperànces i variàncies pels serveis dels diferents paquets.
+```{r}
+k=2
+e_serveis<-54.17
+e_c1<-e_serveis
+e_c2<-2*e_serveis
+e_c3<-3*e_serveis
+e_c4<-4*e_serveis
+e_serveis_paquets<-0.125*e_c1+0.275*e_c2+0.35*e_c3+0.25*e_c4
+v_serveis<-(e_serveis^2)/k
+v_serveis_paquets<-0.125*v_serveis+0.275*v_serveis*2+0.35*v_serveis*3+0.25*v_serveis*4
+```
+
+### Magnituds teòriques
+```{r}
+esperança_arribades<-164
+lambda<-1/esperança_arribades
+
+rho_f<-e_serveis_paquets/esperança_arribades
+(Lq_paquet_f<-lambda^2*e_serveis_paquets^2/(1-lambda*e_serveis_paquets)*
+  ((1+v_serveis_paquets/e_serveis_paquets^2)/(2)))
+(Wq_paquet_f<-Lq_paquet_f*esperança_arribades)
+(W_paquet_f<-Wq_paquet_f+e_serveis_paquets)
+(L_paquet_f<-Lq_paquet_f+rho_f)
+
+```
+|Tipus|L|Lq|W|Wq|$\rho$|
+|:---:|:---:|:---:|:---:|:---:|:---:|
+|Simulades|`r L_paquets`|`r Lq_paquets`|`r W_paquets`|`r Wq_paquet`|`r rho`|
+|Teòriques|`r L_paquet_f`|`r Lq_paquet_f`|`r W_paquet_f`|`r Wq_paquet_f`|`r rho_f`|
+
+Podem veure com la simulació s'aproxima prou bé a les magnituds teòriques.
+
+### Histogrames
+```{r}
+par(mfrow=c(2,2))
+hist(xij2_hist,main="Temps de serveis per clients")
+hist(xi_rho,main="Temps de serveis per paquets")
+hist(taui_hist,main="Temps entre arribades per paquets")
+hist(tauij_hist,main="Temps entre arribades per clients")
+```
+Fent els histogrames del temps de servei i arribades generats, podem comprovar com les arribades dels paquets segueixen efectivament una exponencial i els temps de servei dels paquets segueixen una 2-Erlang, les arribades de clients segueixen una hiperexponencial (això ho sabem ja que el nombre de clients per paquet te diferents probabilitats i com els paquets segueixen una exponencial, tindrem diferents esperançes de temps de clients depenen del número de clients per paquet).
+
+### Magnituds clients
+Si, ja que hem pogut comprovar com totes les magnituds calculades pels clients, son més grans que les calculades pels paquets. Això és esperable perquè mentres en paquets la "unitat a servir" només serà de una en una, quan fem referència a clients, la "unitat a servir" variarà entre 1 a 4, fent que les ocupacions mitjanes tant del S.E com del S.S i els temps mitjos d'espera en el S.E i S.S siguin més elevats (podriem dir que es com fer un canvi d'unitats però amb la diferència que hem de ponderar).Si, com tenim les probabilitats del número de clients en el paquet, podem fer ponderacions de la L del paquet teòrica per a convertirla en la L dels clients teòrica.
+```{r}
+e_arribada_1<-164
+e_arribada_2<-164/2
+e_arribada_3<-164/3
+e_arribada_4<-164/4
+
+e_arribada_hiper<-0.125*e_arribada_1+0.275*e_arribada_2+0.35*e_arribada_3+0.25*e_arribada_4
+e_serveis_c<-54.17
+
+L_clients_f<-L_paquet_f*(0.125+0.275*2+0.35*3+0.25*4)
+Lq_clients_f<-Lq_paquet_f*(0.125+0.275*2+0.35*3+0.25*4)
+Wq_clients_f<-Lq_clients_f*e_arribada_hiper
+W_clients_f<-Wq_clients_f+e_serveis_c
+
+rho_clients<-e_serveis_c/e_arribada_hiper
+```
+|Tipus|L|Lq|W|Wq|
+|:---:|:---:|:---:|:---:|:---:|
+|Simulades|`r L_clients`|`r Lq_clients`|`r W_clients`|`r Wq_clients`|
+|Teòriques|`r L_clients_f`|`r Lq_clients_f`|`r W_clients_f`|`r Wq_clients_f`|
+
+Podem veure com la simulació s'aproxima prou bé a les magnituds teòriques.
