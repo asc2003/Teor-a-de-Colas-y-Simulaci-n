@@ -1,0 +1,400 @@
+---
+title: "Pràctica2"
+author: "Àlex Soler"
+date: "2024-04-08"
+output:
+  html_document:
+    theme: cosmo
+    code_folding: hide
+    css: styles.css
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1.Lectura de dades i magnituds teòriques
+
+### Lectura de les dades i visualització de les mostres
+```{r}
+A<-read.table("A4.DAT",header=T,as.is=T)
+S<-read.table("S14.DAT",header=T,as.is=T)
+par(mfrow=c(1,2))
+hist(A$x,20,col=rainbow(n=10),main="Arribades",xlab="t")
+hist(S$y,20,col=rainbow(n=10),main="Sortides",xlab="t")
+```
+  
+Graficant les mostres, podem veure com aparentment semblen dos distribucions exponencials. A continuació veiem algunes estadístiques bàsiques, primer per les arribades i després per les sortides:
+```{r}
+summary(A)   
+summary(S)
+```
+
+
+### Estimacions mostrals $\lambda$, $\mu$ i $\rho$
+```{r}
+mm1<-mean(A$x) 
+mm2<-mean(S$y)
+lambda<-1/mm1 
+mu<-1/mm2
+rho<-lambda/mu
+```
+Després de calcular $\rho$ per a la mostra, veiem que pren un valor de `r rho` que és inferior a 1 i, per tant, tenim estat estacionari
+
+### Càlcul de les magnituds del S.E.  
+```{r}
+P0<-1-rho
+L<-rho/(1-rho)
+Lq<-rho^2/(1-rho)
+W<-L/lambda
+Wq<-Lq/lambda
+```
+
+Les estimacions fetes son:  
+$\hat{P_0}$=`r round(P0,4)`  
+$\hat{L}$= `r round(L,4)`  
+$\hat{L_q}$= `r round(Lq,4)`  
+$\hat{W}$= `r round(W,4)`  
+$\hat{W_q}$= `r round(Wq,4)` 
+
+## 2. Simulacions per obtenir magnituds S.E.
+Hem fet simulacions per a obtenir les magnituds del S.E., els paràmetres usats son 2000 clients, esperança d'arribades igual a `r mm1` i esperança de la distribució de servei igual a `r mm2`. La llavor utilitzada és _193945_.
+```{r}
+P0sim<-0.6424
+Lsim<-0.5525
+Lqsim<-0.1949
+Wsim<-1.8227
+Wqsim<-0.6432
+```
+
+Els valors obtinguts per simulació son:  
+- $P_0$=`r P0sim` (fitxer txt de probabilitats)  
+- $L$=`r Lsim` (ocupació mitjana del S.E.)  
+- $L_q$=`r Lqsim` (ocupació mitjana de la cua)   
+- $W$=`r Wsim` (temps mig d'espera de servei)  
+- $W_q$=`r Wqsim` (temps mig d'espera en cua)  
+
+![Gràfic de L i Lq](simus2.png) 
+
+## 3. Estabilització Lsistavg
+Després de l'execució de la simulació, apareixen molts gràfics, un d'ells es el de Lavrg on tenim els diferents valors que prenen les magnituds L i Lq al llarg del temps, podem comprovar com a partir de d'una certa t, els valors que prenen s'estabilitzen, un al voltant de `r L` i l'altre al voltant de `r Lq`. En el següent gràfic podem veure com s'estabilitzen les dues magnituds
+![Gràfic de L i Lq](Lavrg_grafic.png) 
+
+Aquesta estabilització indica que el número promig de clients arriba a un estat estacionari
+
+## 4. $\lambda$ cambiada
+Repetirem els apartats 1 i 2 amb un lambda que faci que el factor de càrrega sigui de 0.95
+
+### Càlcul de $\lambda_2$
+```{r}
+rho2<-0.95
+mu2<-mu
+lambda2<-rho2*mu2
+```
+La nova lambda serà de `r lambda2`
+
+### Càlcul de les noves magnituds
+```{r}
+P02<-1-rho2
+L2<-rho2/(1-rho2)
+Lq2<-rho2^2/(1-rho2)
+W2<-L2/lambda2
+Wq2<-Lq2/lambda2
+```
+
+Les estimacions fetes son:  
+$\hat{P_0}$=`r round(P02,4)`  
+$\hat{L}$= `r round(L2,4)`  
+$\hat{L_q}$= `r round(Lq2,4)`  
+$\hat{W}$= `r round(W2,4)`  
+$\hat{W_q}$= `r round(Wq2,4)`
+
+### Càlcul simulacions
+En el càlcul de les simulacions únicament canvia l'esperança de les arribades, que ho calcularem fent l'inversa de $\lambda_2$.  
+
+#### a) Amb 2000 clients
+```{r}
+esperança_arribades<-1/lambda2
+```
+Hem fet simulacions per a obtenir les magnituds del S.E., els paràmetres usats son els mateixos que abans canviant esperança arribades per `r esperança_arribades`. La llavor utilitzada segueix sent _193945_.  
+
+Els valors obtinguts per simulació son:  
+- $P_0$=0.0494 (fitxer txt de probabilitats)  
+- $L$=11.941 (ocupació mitjana del S.E.)  
+- $L_q$=10.990 (ocupació mitjana de la cua)   
+- $W$=15.517 (temps mig d'espera de servei)  
+- $W_q$=14.282 (temps mig d'espera en cua)  
+![Gràfic de L i Lq](simus4.png)
+
+Apreciem com les magnituds no son semblants a les estimades de forma teòrica, seria necessari per una simulació amb un nombre de clients més elevat.
+Mirant els gràfics veiem que ara el valor L no s'estabilitza amb el clients donats, el que voldria dir que necessitariem un nombre de clients més gran per a que s'estabilitzes. En el següent gràfic veiem com no arriba a estabilitzar-se.  
+![Gràfic de L i Lq](Lavrg_grafic_a.png)
+
+#### b) Més de 2000 clients
+Hem hagut de fer les simulacions amb 200000 clients per obtenir una precisió semblant a la del apartat 2. Però en comptes d'utilitzar la llavor que surt per defecte hem fixat la llavor a _6_, obtenint:  
+- $P_0$= 0.0488 (fitxer txt de probabilitats)  
+- $L$= 19.072 (ocupació mitjana del S.E.)  
+- $L_q$= 18.121 (ocupació mitjana de la cua)   
+- $W$= 24.794 (temps mig d'espera de servei)  
+- $W_q$= 23.557 (temps mig d'espera en cua)  
+![Gràfic de L i Lq](simus4b.png)
+
+```{r}
+#llavor 6
+P0_sim<-0.0488
+L_sim<-19.072
+Lq_sim<-18.121
+W_sim<-24.794
+Wq_sim<-23.557
+```
+![Gràfic de L i Lq](L4b.png)
+Comparem valors:  
+
+| Magnitud | Diferència entre teòrica i simulada apartat 2 | Diferència entre teòrica i simulada apartat 4 b) |
+| :----: | :----: | :----: |
+|P0| `r round((P0-P0sim),4)`|`r round(P02-P0_sim,4)`|
+|L| `r round((L-Lsim),4)`|`r round(L2-L_sim,4)`|
+|Lq|`r round((Lq-Lqsim),4)`|`r round(Lq2-Lq_sim,4)`|
+|W|`r round((W-Wsim),4)`|`r round(W2-W_sim,4)`|
+|Wq|`r round((Wq-Wqsim),4)`|`r round(Wq2-Wq_sim,4)`|
+
+Encara que no sigui igual de precís que en l'apartat 2, si que veiem una millora respecta els valors trobats en l'apartat a) amb 2000 clients.
+
+
+## 5. Pels casos 2 i 4b), a quina distribució de probabilitats obeeixen els temps de permanència en el sistema (w) i els temps d'espera en cua dels clients que han esperat (wq|wq>0)
+
+```{r}
+W_dis<-read.table("W_apartat2.txt")
+Wq_dis_tot<-read.table("Wq_apartat2.txt")
+Wq_dis<-Wq_dis_tot[Wq_dis_tot$V1>0,]
+n<-length(W_dis$V1) #mateix per W_dis i W_dis_tot
+n2<-length(Wq_dis)
+
+W4_dis<-read.table("W_4b.txt")
+Wq4_dis_tot<-read.table("Wq_4b.txt")
+Wq4_dis<-Wq4_dis_tot[Wq4_dis_tot$V1>0,]
+n3<-length(W4_dis$V1) #mateix per W_dis i W_dis_tot
+n4<-length(Wq4_dis)
+
+par(mfrow=c(2,2))
+hist(W_dis[,1],main="Apartat_2_W",col="green")
+hist(Wq_dis,main="Apartat_2_Wq|Wq>0",col="green")
+hist(W4_dis[,1],main="Apartat_4_W",col="green")
+hist(Wq4_dis,main="Apartat_4_Wq|Wq>0",col="green")
+
+```
+
+Graficant les dades obtingudes de les simulacions dels apartats 2 i 4b), veiem com semblant seguir lleis exponencials. Ara calcularem les diferents probabilitats.
+
+### Test chi-quadrat per simulacions apartat 2
+```{r}
+sequence<-seq(0,1,by=0.04) 
+Wrate<-1/mean(W_dis$V1)
+Wqrate<-1/mean(Wq_dis)
+#W
+perdist1<-qexp(sequence,rate=Wrate)           
+perdist1[26]<-max(W_dis) 
+
+#Wq
+perdist2<-qexp(sequence,rate=Wqrate)           
+perdist2[26]<-max(Wq_dis)
+
+
+# Chi squared test
+dsample1<-cut(W_dis$V1,breaks=perdist1,include.lowest = T)
+dsample2<-cut(Wq_dis,breaks=perdist2,include.lowest = T) 
+
+n<-length(W_dis$V1)
+iobs1<-as.vector(table(dsample1))            # Obs in the groups defined by nb intervals-percentiles
+pexp1<-as.vector(rep(1/25,25))              # Expected probability for each groups: sample size/nb intervals
+iexp1<-n*pexp1                            # VALOR ESPERAT D'OBSERVACIONS
+
+n2<-length(Wq_dis)
+iobs2<-as.vector(table(dsample2))            # Obs in the groups defined by nb intervals-percentiles
+pexp2<-as.vector(rep(1/25,25))              # Expected probability for each groups: sample size/nb intervals
+iexp2<-n2*pexp2                             # VALOR ESPERAT D'OBSERVACIONS
+                                     
+X2_1<-sum(((iobs1-iexp1)^2)/iexp1)        
+test_1<-chisq.test( iobs1,p=pexp1 )  
+
+
+X2_2<-sum(((iobs2-iexp2)^2)/iexp2)        
+test_2<-chisq.test( iobs2,p=pexp2 ) 
+
+par(mfrow=c(1,2))
+hist(W_dis$V1,freq=FALSE,breaks=perdist1,col="green",main="W2 per percentils") 
+curve(dgamma(x,shape=1,scale=mean(W_dis$V1)),col=2,add=T)
+hist(Wq_dis,freq=FALSE,breaks=perdist2,col="green",main="Wq2 per percentils") 
+curve(dgamma(x,shape=1,scale=mean(Wq_dis)),col=2,add=T)
+
+```
+
+Després de realitzar els tests veïem que les dues variables segueixen distribucions exponencials ja que els seus pvalors son de `r test_1$p.value` per $W$ i `r test_2$p.value` per $W_q$, que com son més grans que 0.05 no tenim suficient evidència per rebutjar l'hipòtesis nul·la (segueixen distribució exponencial). Les seves respectives lambdes seran de `r Wrate` i `r Wqrate`.
+
+### Test chi-quadrat per simulacions apartat 4
+```{r}
+sequence<-seq(0,1,by=0.04) 
+W4rate<-1/mean(W4_dis$V1)
+Wq4rate<-1/mean(Wq4_dis)
+#W
+perdist3<-qexp(sequence,rate=W4rate)           
+perdist3[26]<-max(W4_dis) 
+
+#Wq
+perdist4<-qexp(sequence,rate=Wq4rate)           
+perdist4[26]<-max(Wq4_dis)
+
+
+# Chi squared test
+dsample3<-cut(W4_dis$V1,breaks=perdist3,include.lowest = T)
+dsample4<-cut(Wq4_dis,breaks=perdist4,include.lowest = T) 
+
+
+
+n3<-length(W4_dis$V1)
+iobs1<-as.vector(table(dsample3))            # Obs in the groups defined by nb intervals-percentiles
+pexp1<-as.vector(rep(1/25,25))              # Expected probability for each groups: sample size/nb intervals
+iexp1<-n3*pexp1                            # VALOR ESPERAT D'OBSERVACIONS
+
+n4<-length(Wq4_dis)
+iobs2<-as.vector(table(dsample4))            # Obs in the groups defined by nb intervals-percentiles
+pexp2<-as.vector(rep(1/25,25))              # Expected probability for each groups: sample size/nb intervals
+iexp2<-n4*pexp2                             # VALOR ESPERAT D'OBSERVACIONS
+                                     
+X2_3<-sum(((iobs1-iexp1)^2)/iexp1)        
+test_3<-chisq.test( iobs1,p=pexp1 )  
+
+
+X2_4<-sum(((iobs2-iexp2)^2)/iexp2)        
+test_4<-chisq.test( iobs2,p=pexp2 ) 
+
+par(mfrow=c(1,2))
+hist(W4_dis$V1,freq=FALSE,breaks=perdist3,col="green",main="W4 per percentils") 
+curve(dgamma(x,shape=1,scale=mean(W4_dis$V1)),col=2,add=T)
+hist(Wq4_dis,freq=FALSE,breaks=perdist4,col="green",main="Wq4 per percentils") 
+curve(dgamma(x,shape=1,scale=mean(Wq4_dis)),col=2,add=T)
+
+```
+Segons els tests les dues variables no segueixen distribucions exponencials ja que els seus pvalors son de `r test_3$p.value` per $W$ i `r test_4$p.value` per $W_q$, que com son més petits que 0.05 tenim suficient evidència per rebutjar l'hipòtesis nul·la (segueixen distribució exponencial). Encara que hem obtingut aquests resultats suposarem que son dues exponencials amb lambdes de `r W4rate` i `r Wq4rate` respectivamente.  
+Ara calcularem les probabilitats suposant $\mu$=`r mu`, és a dir, l'inversa de la mitjana de les dades del fitxer de sortides.
+
+### Probabilitats per l'apartat 2
+
+Aquestes son les probabilitats calculades a partir dels fitxers txt. Aquí mirem les simulades.
+```{r}
+P1sim<-sum(W_dis$V1>=(2/mu))/n
+P2sim<-sum(Wq_dis_tot$V1>=(2/mu))/n
+P3sim<-sum(Wq_dis>=(2/mu))/n2
+
+```
+$Pr(w\ge2/\mu)$=`r P1sim`  
+$Pr(w_q\ge2/\mu)$=`r P2sim`  
+$Pr((w_q|w_q>0)\ge2/\mu)$= `r P3sim`  
+
+Aquestes son les probabilitas calculades amb les lambdes `r Wrate` i `r Wqrate`
+```{r}
+P1 <- 1- pexp(2/mu, rate = 1/mean(W_dis$V1))
+P2 <- 1- pexp(2/mu, rate = 1/mean(Wq_dis_tot$V1))
+P3 <- 1- pexp(2/mu, rate = 1/mean(Wq_dis))
+
+```
+$Pr(w\ge2/\mu)$=`r P1`  
+$Pr(w_q\ge2/\mu)$=`r P2`  
+$Pr((w_q|w_q>0)\ge2/\mu)$= `r P3`  
+
+Comparem els valors de les probabilitats per la simulada i pel teòric  
+
+|Probabilitats|Simulada|Teòrica|
+|:---:|:---:|:---:|
+|$Pr(w\ge2/\mu)$| `r P1sim`|`r P1`|
+|$Pr(w_q\ge2/\mu)$|`r P2sim`|`r P2`|
+|$Pr((w_q|w_q>0)\ge2/\mu)$|`r P3sim`|`r P3`|
+
+Podem veure com les probabilitats entre simulada i teòrica son molt semblants. On difereix és en el cas de els temps d'espera en cua sense treure els temps igual a 0, on tenim que la probabilitat de que aquesta variable sigui més gran a $2/\mu$ és més petita per les $w_q$ simulades, això es deu a que en la simulació deuen sorgir més valors igual a 0 dels que contempla la teoria.
+
+### Probabilitats per l'apartat 4b
+
+Aquestes son les probabilitats calculades a partir dels fitxers txt. Aquí mirem les simulades.
+```{r}
+P1_4sim<-sum(W4_dis$V1>=(2/mu))/n3
+P2_4sim<-sum(Wq4_dis_tot$V1>=(2/mu))/n3
+P3_4sim<-sum(Wq4_dis>=(2/mu))/n4
+```
+
+$Pr(w\ge2/\mu)$=`r P1_4sim`  
+$Pr(w_q\ge2/\mu)$=`r P2_4sim`  
+$Pr((w_q|w_q>0)\ge2/\mu)$= `r P3_4sim`
+
+Aquestes son les probabilitats suposant que son distribucions exponencials, és a dir, utilitzant la funció pexp i amb les lambdes `r W4rate` i `r Wq4rate`.
+```{r}
+P1_4 <- 1- pexp(2/mu, rate = 1/mean(W4_dis$V1))
+P2_4 <- 1- pexp(2/mu, rate = 1/mean(Wq4_dis_tot$V1))
+P3_4 <- 1- pexp(2/mu, rate = 1/mean(Wq4_dis))
+```
+
+$Pr(w\ge2/\mu)$=`r P1_4`  
+$Pr(w_q\ge2/\mu)$=`r P2_4`  
+$Pr((w_q|w_q>0)\ge2/\mu)$= `r P3_4`  
+
+Comparem els valors de les probabilitats per la simulada i pel teòric  
+
+|Probabilitats|Simulada|Teòrica|
+|:---:|:---:|:---:|
+|$Pr(w\ge2/\mu)$| `r P1_4sim`|`r P1_4`|
+|$Pr(w_q\ge2/\mu)$|`r P2_4sim`|`r P2_4`|
+|$Pr((w_q|w_q>0)\ge2/\mu)$|`r P3_4sim`|`r P3_4`|
+
+Podem veure com les probabilitats entre simulada i teòrica son molt semblants. On difereix és en el cas de els temps d'espera en cua sense treure els temps igual a 0, on tenim que la probabilitat de que aquesta variable sigui més gran a $2/\mu$ és més petita per les $w_q$ simulades, això es deu a que en la simulació deuen sorgir més valors igual a 0 dels que contempla la teoria.
+
+Per acabar de comparar les probabilitats, veiem que per un mateix valor, tenim probabilitats més elevades en els temps d'espera del apartat 4b, això és degut a que hem utilitzat una lambda més elevada (`r lambda2`) que en l'exercici 2, el que es tradueix en que la taxa d'arribades és més elevada en l'exercici 4b i, per tant, arriben més clients amb menys temps
+## 6. K-erlang
+Utilitzant una 4-erlang en arribades i una exponencial per a les sortides amb $\mu$=`r mu` amb 2000 clients i llavor _193945_.
+```{r}
+k<-4
+alpha<-k/mm1 #pq es k/esperança de la k-erlang
+#que es la mateixa que les expos
+#rho=lambda/mu ON LAMBDA ES LA DE CADA EXP
+rho6<-lambda/mu
+rho6
+
+#Ex2
+P0sim<-0.6424
+Lsim<-0.5525
+Lqsim<-0.1949
+Wsim<-1.8227
+Wqsim<-0.6432
+
+#Ex6
+P06sim<-0.66939
+L6sim<-0.3799 
+Lq6sim<-0.0493 
+W6sim<-1.3294 
+Wq6sim<-0.1725 
+
+
+set.seed(1234)
+x<-seq(0,50,by=0.01)
+y<-dgamma(x,shape=k,rate=lambda)
+y2<-dexp(x,rate=lambda)
+
+
+par(mfrow=c(1,2))
+plot(x,y,main="4-Erlang",type="l",lwd=1,ylab="Probabilidad",xlab="temps entre arribades")
+abline(v=which.max(y)/100)
+plot(x,y2,main="exponencial",type="l",lwd=1,ylab="Probabilidad",xlab="temps entre arribades")
+```
+
+![Gràfic de L i Lq](simus6.png)
+
+Encara que tinguem una rho molt similar a la simulada en l'apartat 2, podem veure com totes les altres magnituds (excepte P0 que depen directament de rho) son més petites que en l'exercici 2:  
+
+| Magnitud | Apartat 2 | Apartat 6 |
+| :----: | :----: | :----: |
+|P0| `r P0sim`|`r P06sim`|
+|L| `r Lsim`|`r L6sim`|
+|Lq|`r Lqsim`|`r Lq6sim`|
+|W|`r Wsim`|`r W6sim`|
+|Wq|`r Wqsim`|`r Wq6sim`|
+
+Les magnituds fan referència al númeor mig mig de clients com al temps mig d'espera, tant en el S.E. com en la cua. Per poder explicar perquè aquestes magnituds son menors en la 4-Erlang ens hem de fixar en la seva distribució que hem graficat abans. Si interpretem l'eix x com el temps entre arribades, podem veure com amb una exponencial hi ha més probabilitat que els temps entre arribades siguin més petits, en canvi en la 4-Erlang no es concentra tanta probabilitat en el valors petits, sino que veiem com la probabilitat més alta està en `r which.max(y)/100`. Bàsicament una exponencial té en els temps més petits molta probabilitat (més probable que els clients arribin més seguit i, per tant, s'acumulin en el S.E. i en la cua provocan alhora que els temps d'espera augmentin) mentre que la 4-Erlang te probabilitats molt baixes al principi i comença augmentar quan els temps son més elevats (fent que els clients arribin més espaiats i que no s'acumulin al S.E. ni a la cua, que provoca també que els temps d'espera siguin més baixos)
